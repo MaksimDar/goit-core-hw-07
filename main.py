@@ -1,88 +1,6 @@
 from datetime import datetime, date, timedelta
 from collections import UserDict
 
-def input_error(func):
-    def inner(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except ValueError as e:
-            return str(e)
-        except IndexError:
-            return "Enter user name"
-        except KeyError:
-            return "Username not found."
-
-    return inner
-
-def parse_input(user_input):
-    cmd, *args = user_input.split()
-    cmd = cmd.strip().lower()
-    return cmd, *args
-
-@input_error
-def add_contact(args, book: AddressBook):
-    name, phone, *_ = args
-    record = book.find(name)
-    message = "Contact updated."
-    if record is None:
-        record = Record(name)
-        book.add_record(record)
-        message = "Contact added."
-    if phone:
-        record.add_phone(phone)
-    return message
-
-@input_error
-def change_contact(args, book: AddressBook):
-    name, old_phone, new_phone, *_ = args 
-    record = book.find(name)
-    if record:
-        record.edit_phone(old_phone, new_phone)
-        return f"The phone number for user {name} has been updated to {new_phone}"
-    else:
-        return f"User {name} is not found"
-
-@input_error
-def show_phone(args, book: AddressBook):
-    name, *_ = args
-    record = book.find(name)
-    if record:
-        return "; ".join(p.value for p in record.phones)
-    else:
-        return f"{name} is not found"
-
-def show_all(args, book:AddressBook):
-    return f'{book}'
-
-@input_error
-def add_birthday(args,book:AddressBook):
-    name, birthday, *_ = args
-    record = book.find(name)
-    if record:
-        record.add_birthday(birthday)
-        return f'Birthday date for user {name} is added'
-    else:
-        return f"User {name} is not found"
-
-@input_error  
-def show_birthday(args,book: AddressBook):
-    name, *_ = args
-    record = book.find(name)
-    if record:
-        user_birthday = record.show_birthday()
-        if user_birthday is None:
-            return f"{name}'s birthday has not been added yet"
-        return user_birthday
-
-    return f"User {name} is not found"
-
-@input_error   
-def birthdays(args,book:AddressBook):
-    upcoming = book.get_upcoming_birthdays()
-    if not upcoming:
-        return "No birthdays in the next 7 days."
-    return "\n".join(f"{user['name']}: {user['birthday']}" for user in upcoming)
-
 class Field:
     def __init__(self, value):
         self.value = value
@@ -210,6 +128,90 @@ class AddressBook(UserDict):
     def __str__(self):
         lines = [str(record) for record in self.data.values()]
         return "\n".join(lines) if lines else "Address book is empty."
+    
+
+def input_error(func):
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ValueError as e:
+            return str(e)
+        except IndexError:
+            return "Enter user name"
+        except KeyError:
+            return "Username not found."
+
+    return inner
+
+def parse_input(user_input):
+    cmd, *args = user_input.split()
+    cmd = cmd.strip().lower()
+    return cmd, *args
+
+@input_error
+def add_contact(args, book: AddressBook):
+    name, phone, *_ = args
+    record = book.find(name)
+    message = "Contact updated."
+    if record is None:
+        record = Record(name)
+        book.add_record(record)
+        message = "Contact added."
+    if phone:
+        record.add_phone(phone)
+    return message
+
+@input_error
+def change_contact(args, book: AddressBook):
+    name, old_phone, new_phone, *_ = args 
+    record = book.find(name)
+    if record:
+        record.edit_phone(old_phone, new_phone)
+        return f"The phone number for user {name} has been updated to {new_phone}"
+    else:
+        return f"User {name} is not found"
+
+@input_error
+def show_phone(args, book: AddressBook):
+    name, *_ = args
+    record = book.find(name)
+    if record:
+        return "; ".join(p.value for p in record.phones)
+    else:
+        return f"{name} is not found"
+
+def show_all(args, book:AddressBook):
+    return f'{book}'
+
+@input_error
+def add_birthday(args,book:AddressBook):
+    name, birthday, *_ = args
+    record = book.find(name)
+    if record:
+        record.add_birthday(birthday)
+        return f'Birthday date for user {name} is added'
+    else:
+        return f"User {name} is not found"
+
+@input_error  
+def show_birthday(args,book: AddressBook):
+    name, *_ = args
+    record = book.find(name)
+    if record:
+        user_birthday = record.show_birthday()
+        if user_birthday is None:
+            return f"{name}'s birthday has not been added yet"
+        return user_birthday
+
+    return f"User {name} is not found"
+
+@input_error   
+def birthdays(args,book:AddressBook):
+    upcoming = book.get_upcoming_birthdays()
+    if not upcoming:
+        return "No birthdays in the next 7 days."
+    return "\n".join(f"{user['name']}: {user['birthday']}" for user in upcoming)
+
 
 def main():
     book = AddressBook()
