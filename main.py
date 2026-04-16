@@ -33,9 +33,9 @@ class Birthday(Field):
         if birthday > datetime.now():
             raise ValueError("Error! Birthday date cannot be later than today")
 
-        self.value = birthday.date()
+        self.value = datetime.strftime(birthday, '%d.%m.%Y')
     def __str__(self):
-        return self.value.strftime("%d.%m.%Y")
+        return self.value
 
 class Record:
     def __init__(self, name):
@@ -76,7 +76,7 @@ class Record:
     
 
     def __str__(self):
-        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}, birthday: {self.birthday if self.birthday is not None else 'Unknown'}"
+        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}, birthday: {self.birthday.value if self.birthday is not None else 'Unknown'}"
 
 class AddressBook(UserDict):
     # метод додає запис до self.data.
@@ -114,7 +114,13 @@ class AddressBook(UserDict):
         for name, record in self.data.items():
             if record.birthday is None:
                 continue
-            birthday_this_year = record.birthday.value.replace(year=today.year)
+            birthday_this_year_str = record.birthday.value
+            birthday_this_year_date = datetime.strptime(birthday_this_year_str, '%d.%m.%Y').date()
+            try: 
+                birthday_this_year = birthday_this_year_date.replace(year=today.year)
+            except ValueError:
+                birthday_this_year = birthday_this_year_date.replace(year=today.year, day=28)
+                
     
             if birthday_this_year < today:
                 birthday_this_year= birthday_this_year.replace(year=today.year+1)
@@ -140,10 +146,15 @@ def input_error(func):
             return "Enter user name"
         except KeyError:
             return "Username not found."
+        except AttributeError:
+            return "User is not found"
 
     return inner
 
 def parse_input(user_input):
+    if not user_input.strip():
+        raise ValueError("Please, enter value")
+        
     cmd, *args = user_input.split()
     cmd = cmd.strip().lower()
     return cmd, *args
@@ -154,6 +165,7 @@ def add_contact(args, book: AddressBook):
     record = book.find(name)
     message = "Contact updated."
     if record is None:
+        Phone(phone)
         record = Record(name)
         book.add_record(record)
         message = "Contact added."
@@ -161,24 +173,21 @@ def add_contact(args, book: AddressBook):
         record.add_phone(phone)
     return message
 
+
 @input_error
 def change_contact(args, book: AddressBook):
     name, old_phone, new_phone, *_ = args 
     record = book.find(name)
-    if record:
-        record.edit_phone(old_phone, new_phone)
-        return f"The phone number for user {name} has been updated to {new_phone}"
-    else:
-        return f"User {name} is not found"
+    record.edit_phone(old_phone, new_phone)
+    return f"The phone number for user {name} has been updated to {new_phone}"
+        
 
 @input_error
 def show_phone(args, book: AddressBook):
     name, *_ = args
     record = book.find(name)
-    if record:
-        return "; ".join(p.value for p in record.phones)
-    else:
-        return f"{name} is not found"
+    return "; ".join(p.value for p in record.phones)
+   
 
 def show_all(args, book:AddressBook):
     return f'{book}'
@@ -187,23 +196,19 @@ def show_all(args, book:AddressBook):
 def add_birthday(args,book:AddressBook):
     name, birthday, *_ = args
     record = book.find(name)
-    if record:
-        record.add_birthday(birthday)
-        return f'Birthday date for user {name} is added'
-    else:
-        return f"User {name} is not found"
+    record.add_birthday(birthday)
+    return f'Birthday date for user {name} is added'
+
 
 @input_error  
 def show_birthday(args,book: AddressBook):
     name, *_ = args
     record = book.find(name)
-    if record:
-        user_birthday = record.show_birthday()
-        if user_birthday is None:
-            return f"{name}'s birthday has not been added yet"
-        return user_birthday
+    user_birthday = record.show_birthday()
+    if user_birthday is None:
+        return f"{name}'s birthday has not been added yet"
+    return user_birthday
 
-    return f"User {name} is not found"
 
 @input_error   
 def birthdays(args,book:AddressBook):
@@ -218,7 +223,11 @@ def main():
     print("Welcome to the assistant bot!")
     while True:
         user_input = input("Enter a command: ")
-        command, *args = parse_input(user_input)
+        try:
+            command, *args = parse_input(user_input)
+        except ValueError as e:
+            print(e)
+            continue
 
         if command in ["close", "exit"]:
             print("Good bye!")
